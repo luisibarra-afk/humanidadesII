@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>OLIMPO RPG</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════
+   SNES PALETTE — 16-color per zone
+══════════════════════════════════════ */
+:root {
+  --black:   #000000;
+  --white:   #f8f8f8;
+  --gold:    #f8b800;
+  --gold2:   #b87800;
+  --red:     #d00000;
+  --red2:    #f84800;
+  --green:   #008800;
+  --green2:  #00e800;
+  --blue:    #0038b8;
+  --blue2:   #4878f8;
+  --cyan:    #00c8f8;
+  --purple:  #880088;
+  --purple2: #e800e8;
+  --orange:  #f87800;
+  --cream:   #f8e0a8;
+  --gray:    #787878;
+  --gray2:   #484848;
+  --darkblue:#080820;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;image-rendering:pixelated;}
+html,body{width:100%;height:100%;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+
+/* ══ GAME FRAME ══ */
+#GAME{
+  width:512px;height:448px;
+  position:relative;overflow:hidden;
+  background:#000;
+  outline:4px solid var(--gold);
+  box-shadow:0 0 0 2px #000,0 0 0 6px var(--gold2),0 0 60px rgba(248,184,0,.4);
+}
+@media(max-width:540px){
+  #GAME{width:100vw;height:100vh;outline:none;box-shadow:none;}
+}
+
+/* scanlines */
+#GAME::after{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.22) 3px,rgba(0,0,0,.22) 4px);
+  pointer-events:none;z-index:9000;
+}
+
+/* ══ SCREENS ══ */
+.SCR{position:absolute;inset:0;display:none;}
+.SCR.ON{display:block;}
+
+/* ══════════════════════════════════════
+   TITLE SCREEN
+══════════════════════════════════════ */
+#S_TITLE{background:#080010;}
+
+.title-bg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 30%, #181050 0%, transparent 70%),
+    linear-gradient(180deg,#080010 0%,#100820 60%,#000000 100%);
+}
+/* pixel stars via box-shadow on single pixel */
+.stars{
+  position:absolute;width:2px;height:2px;background:#fff;
+  box-shadow:
+    30px 20px #fff, 80px 45px #f8f8c8, 140px 15px #fff,
+    200px 60px #c8c8ff, 260px 30px #fff, 320px 50px #fff,
+    380px 12px #f8c800, 430px 35px #fff, 480px 55px #fff,
+    50px 80px #fff, 110px 100px #f8f8c8, 170px 70px #fff,
+    240px 90px #fff, 300px 110px #c8c8ff, 360px 85px #fff,
+    420px 95px #fff, 470px 75px #f8c800,
+    20px 130px #fff, 90px 150px #fff, 160px 120px #fff,
+    230px 145px #c8ffff, 310px 130px #fff, 390px 160px #fff,
+    460px 140px #fff,
+    45px 180px #fff, 130px 200px #f8f8c8, 220px 170px #fff,
+    330px 190px #fff, 430px 185px #c8c8ff;
+}
+
+/* MOUNTAINS pixel silhouette */
+.t-mountain{position:absolute;bottom:0;width:100%;}
+.t-mtn-a{
+  position:absolute;bottom:0;left:0;width:0;height:0;
+  border-left:160px solid transparent;
+  border-right:160px solid transparent;
+  border-bottom:140px solid #0a0a28;
+}
+.t-mtn-b{
+  position:absolute;bottom:0;left:80px;width:0;height:0;
+  border-left:120px solid transparent;
+  border-right:120px solid transparent;
+  border-bottom:110px solid #0c0c30;
+}
+.t-mtn-c{
+  position:absolute;bottom:0;right:0;width:0;height:0;
+  border-left:180px solid transparent;
+  border-right:180px solid transparent;
+  border-bottom:150px solid #080820;
+}
+.t-mtn-d{
+  position:absolute;bottom:0;right:60px;width:0;height:0;
+  border-left:130px solid transparent;
+  border-right:130px solid transparent;
+  border-bottom:120px solid #0a0a24;
+}
+.t-ground{
+  position:absolute;bottom:0;left:0;right:0;height:60px;
+  background:linear-gradient(180deg,#0a0018 0%,#000 100%);
+}
+
+/* TEMPLE pixel columns */
+.t-temple{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);width:200px;}
+.t-col{
+  position:absolute;bottom:0;
+  width:12px;background:linear-gradient(90deg,#181840 0%,#282860 40%,#181840 100%);
+}
+.t-col::before{content:'';position:absolute;top:-8px;left:-4px;width:20px;height:8px;background:#202050;}
+.t-entab{position:absolute;bottom:120px;left:-20px;width:240px;height:10px;background:#202050;}
+.t-entab2{position:absolute;bottom:130px;left:-14px;width:228px;height:8px;background:#282860;}
+
+/* LOGO */
+.logo-wrap{position:absolute;top:28px;left:0;right:0;text-align:center;}
+.logo-1{
+  font-family:'Press Start 2P',monospace;
+  font-size:30px;color:var(--gold);
+  text-shadow:3px 3px #000,-1px -1px #000,4px 4px var(--gold2);
+  display:block;letter-spacing:6px;
+  animation:logoFlash 2s steps(1) infinite;
+}
+@keyframes logoFlash{0%,100%{color:var(--gold);}50%{color:var(--orange);}}
+.logo-2{
+  font-family:'Press Start 2P',monospace;
+  font-size:9px;color:var(--cyan);
+  text-shadow:2px 2px #000;
+  display:block;margin-top:10px;letter-spacing:3px;
+}
+.logo-3{
+  font-family:'Press Start 2P',monospace;
+  font-size:5px;color:var(--cream);
+  text-shadow:1px 1px #000;
+  display:block;margin-top:8px;
+}
+
+.press-start{
+  font-family:'Press Start 2P',monospace;
+  font-size:8px;color:#fff;
+  position:absolute;bottom:30px;left:0;right:0;text-align:center;
+  animation:blink 1s steps(1) infinite;
+}
+@keyframes blink{0%,49%{opacity:1;}50%,100%{opacity:0;}}
+
+.title-copy{
+  font-family:'Press Start 2P',monospace;
+  font-size:4px;color:var(--gray);
+  position:absolute;bottom:8px;left:0;right:0;text-align:center;
+}
+
+/* ══════════════════════════════════════
+   NAME ENTRY SCREEN
+══════════════════════════════════════ */
+#S_NAME{
+  background:#000820;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;
+  padding:24px;
+}
+.name-box{
+  border:4px solid var(--white);
+  background:#000;
+  padding:16px 20px;
+  width:100%;max-width:400px;
+}
+.name-box-title{
+  font-family:'Press Start 2P',monospace;
+  font-size:7px;color:var(--gold);
+  margin-bottom:12px;line-height:2;
+}
+.name-row{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.px-lbl{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--cyan);}
+.px-input{
+  font-family:'Press Start 2P',monospace;font-size:10px;
+  padding:6px 10px;background:#000;
+  border:2px solid var(--gold);color:var(--gold);
+  width:140px;outline:none;
+}
+.px-input:focus{border-color:var(--white);}
+.px-btn{
+  font-family:'Press Start 2P',monospace;font-size:7px;
+  padding:8px 14px;background:#000;
+  border:3px solid var(--gold);color:var(--gold);
+  cursor:pointer;
+}
+.px-btn:hover,.px-btn:focus{background:var(--gold);color:#000;}
+.px-btn.sm{font-size:6px;padding:6px 10px;}
+
+/* ══════════════════════════════════════
+   ZONE MAP (OVERWORLD)
+══════════════════════════════════════ */
+#S_MAP{background:#000808;}
+
+.map-header{
+  height:36px;
+  background:#000;
+  border-bottom:4px solid var(--gold);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 10px;
+}
+.map-title{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--gold);}
+.map-hp{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--green2);}
+
+.zones-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  padding:8px;
+  height:calc(100% - 36px);
+}
+
+/* zone 5 spans both columns */
+.zones-grid > .zone-card:last-child{grid-column:1 / -1;}
+
+.zone-card{
+  position:relative;overflow:hidden;
+  border:3px solid var(--gray2);
+  cursor:pointer;
+  transition:border-color .05s;
+  min-height:90px;
+}
+.zone-card:hover:not(.locked){border-color:var(--gold);}
+.zone-card.cleared{border-color:var(--green);}
+.zone-card.locked{opacity:.35;cursor:not-allowed;filter:grayscale(1);}
+
+/* parallax layers in each zone */
+.z-sky{position:absolute;top:0;left:0;right:0;bottom:50%;}
+.z-mid{position:absolute;top:50%;left:0;right:0;bottom:25%;}
+.z-gnd{position:absolute;bottom:0;left:0;right:0;height:25%;}
+
+.z-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.7) 100%);
+}
+.z-info{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:4px 6px;
+}
+.z-name{font-family:'Press Start 2P',monospace;font-size:5px;color:var(--gold);margin-bottom:2px;line-height:1.6;}
+.z-boss{font-family:'Press Start 2P',monospace;font-size:4px;color:var(--cyan);}
+.z-stat{font-family:'Press Start 2P',monospace;font-size:4px;margin-top:2px;}
+
+.z-sprite{
+  position:absolute;top:6px;right:6px;
+  font-size:22px;line-height:1;
+  filter:drop-shadow(2px 2px 0 #000);
+}
+.z-clear{
+  position:absolute;top:4px;left:4px;
+  font-family:'Press Start 2P',monospace;font-size:5px;
+  color:var(--green2);background:rgba(0,0,0,.8);
+  padding:2px 4px;border:1px solid var(--green);
+}
+
+/* zone-specific palettes */
+.z1 .z-sky{background:linear-gradient(180deg,#102040 0%,#1a3060 100%);}
+.z1 .z-mid{background:#0a1830;}
+.z1 .z-gnd{background:#050e1a;}
+
+.z2 .z-sky{background:linear-gradient(180deg,#400000 0%,#600808 100%);}
+.z2 .z-mid{background:#300000;}
+.z2 .z-gnd{background:#180000;}
+
+.z3 .z-sky{background:linear-gradient(180deg,#003830 0%,#005040 100%);}
+.z3 .z-mid{background:#002820;}
+.z3 .z-gnd{background:#001810;}
+
+.z4 .z-sky{background:linear-gradient(180deg,#383800 0%,#505010 100%);}
+.z4 .z-mid{background:#282800;}
+.z4 .z-gnd{background:#181000;}
+
+.z5 .z-sky{background:linear-gradient(180deg,#200040 0%,#380060 100%);}
+.z5 .z-mid{background:#180030;}
+.z5 .z-gnd{background:#080018;}
+
+/* ══════════════════════════════════════
+   BATTLE SCREEN — EarthBound 1st Person
+══════════════════════════════════════ */
+#S_BATTLE{
+  display:flex;flex-direction:column;
+  background:#000;
+}
+
+/* ─ ENEMY ZONE (top ~56%) ─ */
+.battle-enemy-zone{
+  flex:0 0 252px;
+  position:relative;overflow:hidden;
+}
+
+/* parallax bg layers */
+.be-sky{position:absolute;top:0;left:0;right:0;height:55%;}
+.be-mid{position:absolute;top:55%;left:0;right:0;height:25%;}
+.be-gnd{position:absolute;bottom:0;left:0;right:0;height:20%;}
+.be-floor{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.15);}
+
+/* decorative side columns */
+.be-col{
+  position:absolute;bottom:0;
+  width:14px;
+  background:linear-gradient(90deg,rgba(255,255,255,.04) 0%,rgba(255,255,255,.1) 50%,rgba(255,255,255,.04) 100%);
+}
+.be-col::before{
+  content:'';position:absolute;top:-8px;left:-3px;width:20px;height:8px;
+  background:rgba(255,255,255,.08);
+}
+
+/* ENEMY SPRITE CONTAINER — center of screen */
+.enemy-sprite-wrap{
+  position:absolute;
+  bottom:20px;
+  left:50%;transform:translateX(-50%);
+  display:flex;align-items:flex-end;justify-content:center;
+}
+/* The actual pixel-art sprite drawn via CSS box-shadow */
+.px-sprite{
+  display:block;
+  /* size of one pixel cell */
+}
+
+/* enemy idle bob */
+.enemy-bob{animation:enemyBob 2s steps(4) infinite;}
+@keyframes enemyBob{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-6px);}
+}
+.enemy-shake-anim{animation:eShake .35s steps(3) !important;}
+@keyframes eShake{
+  0%,100%{transform:translateX(-50%);}
+  25%{transform:translateX(calc(-50% - 10px));}
+  75%{transform:translateX(calc(-50% + 10px));}
+}
+
+/* attack flash */
+.atk-flash{
+  position:absolute;inset:0;opacity:0;
+  pointer-events:none;z-index:800;
+  transition:opacity .06s;
+}
+
+/* damage number float */
+.dmg-float{
+  position:absolute;
+  font-family:'Press Start 2P',monospace;
+  font-size:16px;
+  text-shadow:2px 2px #000,3px 3px rgba(0,0,0,.5);
+  pointer-events:none;z-index:900;
+  animation:floatUp .9s steps(9) forwards;
+}
+@keyframes floatUp{
+  0%{transform:translateY(0) scale(1.4);opacity:1;}
+  70%{transform:translateY(-40px) scale(1);opacity:1;}
+  100%{transform:translateY(-60px) scale(.8);opacity:0;}
+}
+
+/* ─ ENEMY HUD (top-left inside enemy zone) ─ */
+.enemy-hud{
+  position:absolute;top:6px;left:6px;
+  background:rgba(0,0,8,.9);
+  border:2px solid var(--white);
+  padding:5px 8px;
+  min-width:200px;
+}
+.ehud-name{font-family:'Press Start 2P',monospace;font-size:6px;color:var(--gold);margin-bottom:3px;}
+.ehud-topic{font-family:'Press Start 2P',monospace;font-size:4px;color:var(--cyan);margin-bottom:4px;}
+.hprow{display:flex;align-items:center;gap:5px;}
+.hplbl{font-family:'Press Start 2P',monospace;font-size:5px;color:#fff;width:14px;}
+.hptrack{flex:1;height:9px;background:#111;border:1px solid #444;position:relative;overflow:hidden;}
+.hpfill{height:100%;position:absolute;left:0;top:0;transition:width .25s steps(8);}
+.hpfill::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,.25);}
+.hpval{font-family:'Press Start 2P',monospace;font-size:5px;color:#fff;min-width:44px;text-align:right;}
+
+/* ─ BATTLE UI (bottom ~44%) ─ */
+.battle-ui{
+  flex:1;
+  background:#000008;
+  border-top:3px solid var(--gold);
+  display:flex;flex-direction:column;
+}
+
+/* player stat ribbon */
+.player-ribbon{
+  background:#000028;
+  border-bottom:2px solid var(--blue);
+  padding:3px 10px;
+  display:flex;gap:14px;align-items:center;
+}
+.pstat{font-family:'Press Start 2P',monospace;font-size:5px;}
+.pstat .lbl{color:var(--cyan);}
+.pstat .val{color:#fff;}
+
+/* text window */
+.txt-win{
+  padding:7px 12px 5px;
+  min-height:54px;
+  border-bottom:2px solid var(--gray2);
+  position:relative;
+}
+.txt-line{
+  font-family:'Press Start 2P',monospace;
+  font-size:7px;color:#fff;
+  line-height:2;display:block;
+}
+.txt-line.t-sys{color:var(--cyan);}
+.txt-line.t-dmg{color:var(--red2);}
+.txt-line.t-good{color:var(--gold);}
+.txt-line.t-bad{color:var(--red);}
+.txt-line.t-heal{color:var(--green2);}
+
+/* cursor blink in text */
+.txt-cursor{display:inline-block;width:8px;height:10px;background:#fff;animation:blink .6s steps(1) infinite;vertical-align:middle;}
+
+/* command area */
+.cmd-zone{
+  flex:1;padding:6px 8px;
+  display:flex;flex-direction:column;gap:4px;
+  overflow:hidden;
+}
+
+/* main command grid */
+.main-menu{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:4px;
+}
+.cmd{
+  font-family:'Press Start 2P',monospace;font-size:6px;
+  padding:7px 4px;
+  background:#000;border:2px solid var(--gray2);color:#fff;
+  cursor:pointer;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.cmd .ci{font-size:12px;}
+.cmd:hover:not(:disabled),.cmd.sel{background:var(--blue);border-color:var(--gold);color:var(--gold);}
+.cmd:disabled{opacity:.3;cursor:not-allowed;}
+
+/* question panel */
+.q-panel{display:none;}
+.q-panel.on{display:block;}
+.q-text{
+  font-family:'Press Start 2P',monospace;font-size:6px;
+  color:var(--cream);line-height:2.2;
+  padding:4px 6px;background:#00001a;
+  border:2px solid var(--blue2);margin-bottom:4px;
+}
+.q-choices{display:flex;flex-direction:column;gap:3px;}
+.qbtn{
+  font-family:'Press Start 2P',monospace;font-size:5px;
+  padding:5px 8px;background:#000;
+  border:2px solid var(--gray2);color:#fff;
+  cursor:pointer;text-align:left;line-height:1.8;
+  display:flex;gap:6px;align-items:flex-start;
+}
+.qbtn:hover:not(:disabled){background:#00102a;border-color:var(--gold);color:var(--gold);}
+.qbtn.correct{background:#001800;border-color:var(--green);color:var(--green2);}
+.qbtn.wrong{background:#180000;border-color:var(--red);color:var(--red2);}
+.qbtn:disabled{cursor:default;}
+.qltr{color:var(--cyan);min-width:12px;flex-shrink:0;}
+
+/* ══════════════════════════════════════
+   WIN / LOSE SCREENS
+══════════════════════════════════════ */
+#S_WIN{background:#000820;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;}
+#S_LOSE{background:#180000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;}
+#S_END{background:#000010;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;}
+
+.res-title{font-family:'Press Start 2P',monospace;font-size:13px;text-align:center;line-height:2;}
+.res-sub{font-family:'Press Start 2P',monospace;font-size:5px;color:var(--cream);text-align:center;line-height:2.4;max-width:420px;}
+.res-box{border:3px solid var(--gold);padding:10px 16px;background:#001018;text-align:center;max-width:400px;width:100%;}
+.res-box-lbl{font-family:'Press Start 2P',monospace;font-size:5px;color:var(--gold);margin-bottom:6px;}
+.res-box-val{font-family:'Press Start 2P',monospace;font-size:5px;color:#fff;line-height:2.2;}
+
+.big-btn{
+  font-family:'Press Start 2P',monospace;font-size:7px;
+  padding:10px 20px;background:#000;
+  border:3px solid var(--gold);color:var(--gold);
+  cursor:pointer;
+}
+.big-btn:hover{background:var(--gold);color:#000;}
+.big-btn.dim{border-color:var(--gray);color:var(--gray);}
+.big-btn.dim:hover{background:var(--gray);color:#000;}
+
+/* ══════════════════════════════════════
+   CSS PIXEL ART SPRITES — MONSTRUOS GRIEGOS
+   Pixel = 7px · drawn via box-shadow grid
+══════════════════════════════════════ */
+.sp{display:inline-block;position:relative;}
+.sp::before{
+  content:'';display:block;
+  width:7px;height:7px;
+  position:relative;
+  /* individual shadow grids below */
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   MEDUSA — serpent hair, petrifying gaze
+   zona 1 · azul profundo
+   pixel = 7px
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.sp-medusa{width:224px;height:252px;margin-bottom:4px;}
+.sp-medusa::before{
+  width:7px;height:7px;background:#50a050;
+  box-shadow:
+    /* === SNAKE HAIR top === */
+    /* snake left 1 */
+    -14px -28px #40c040, -7px -28px #40c040,
+    -14px -21px #309030, -21px -14px #40c040, -14px -14px #50d050,
+    /* snake left 2 */
+    -7px -14px #409040, 0 -7px #50c050,
+    /* snake right 1 */
+    42px -28px #40c040, 49px -28px #40c040,
+    49px -21px #309030, 49px -14px #40c040,
+    /* snake right 2 */
+    56px -7px #50c050, 42px -14px #50d050,
+    /* snake center up */
+    14px -35px #50d050, 21px -35px #50d050, 14px -28px #309030, 21px -28px #309030,
+    14px -21px #40c040, 21px -21px #40c040,
+    /* snake heads (tiny) */
+    -21px -21px #20a020, -7px -35px #20a020,
+    49px -35px #20a020, 63px -21px #20a020,
+    14px -42px #20a020, 28px -42px #20a020,
+    /* === HEAD === */
+    /* skull shape */
+    7px 0 #70b870, 14px 0 #70b870, 21px 0 #70b870, 28px 0 #70b870,
+    0 7px #70b870, 7px 7px #80c880, 14px 7px #80c880, 21px 7px #80c880, 28px 7px #80c880, 35px 7px #70b870,
+    0 14px #70b870, 7px 14px #80c880, 14px 14px #80c880, 21px 14px #80c880, 28px 14px #80c880, 35px 14px #70b870,
+    0 21px #70b870, 7px 21px #80c880, 14px 21px #80c880, 21px 21px #80c880, 28px 21px #80c880, 35px 21px #70b870,
+    /* === EYES — glowing red === */
+    7px 14px #ff0000, 28px 14px #ff0000,
+    /* pupils */
+    7px 14px #ff4040, 28px 14px #ff4040,
+    /* glow around eyes */
+    0 14px #800000, 14px 14px #800000, 21px 14px #800000, 35px 14px #800000,
+    /* === FANGS / MOUTH === */
+    7px 28px #60a860, 14px 28px #40a040, 21px 28px #40a040, 28px 28px #60a860,
+    14px 35px #f8f8f8, 21px 35px #f8f8f8,
+    /* === NECK / TORSO === */
+    7px 42px #50a050, 14px 42px #50a050, 21px 42px #50a050, 28px 42px #50a050,
+    0 49px #40a840, 7px 49px #50b050, 14px 49px #50b050, 21px 49px #50b050, 28px 49px #50b050, 35px 49px #40a840,
+    0 56px #40a840, 7px 56px #50b050, 14px 56px #50b050, 21px 56px #50b050, 28px 56px #50b050, 35px 56px #40a840,
+    /* === SNAKE BODY / TAIL === */
+    -7px 63px #309030, 0 63px #40a040, 7px 63px #50b050, 14px 63px #50b050, 21px 63px #50b050, 28px 63px #50b050, 35px 63px #40a040, 42px 63px #309030,
+    -14px 70px #208020, -7px 70px #309030, 0 70px #40a040, 7px 70px #50b050, 14px 70px #60c060, 21px 70px #60c060, 28px 70px #50b050, 35px 70px #40a040, 42px 70px #309030, 49px 70px #208020,
+    -14px 77px #208020, -7px 77px #309030, 0 77px #40a040, 7px 77px #50b050, 14px 77px #60c060, 21px 77px #60c060, 28px 77px #50b050, 35px 77px #40a040, 42px 77px #309030, 49px 77px #208020,
+    /* scales texture */
+    0 77px #38a038, 14px 77px #38a038, 28px 77px #38a038, 42px 77px #38a038,
+    /* coil */
+    -7px 84px #309030, 42px 84px #309030,
+    7px 91px #208020, 28px 91px #208020,
+    /* shadow */
+    -14px 98px #101010, 0 98px #101010, 7px 98px #101010, 14px 98px #101010, 21px 98px #101010, 28px 98px #101010, 35px 98px #101010, 42px 98px #101010, 49px 98px #101010;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CÍCLOPE — one eye, huge, hairy club
+   zona 2 · rojo sangre
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.sp-ciclope{width:252px;height:266px;margin-bottom:0;}
+.sp-ciclope::before{
+  width:7px;height:7px;background:#907060;
+  box-shadow:
+    /* === HUGE HEAD === */
+    7px 0 #a08070, 14px 0 #a08070, 21px 0 #a08070, 28px 0 #a08070, 35px 0 #a08070,
+    0 7px #907060, 7px 7px #b09080, 14px 7px #b09080, 21px 7px #b09080, 28px 7px #b09080, 35px 7px #b09080, 42px 7px #907060,
+    0 14px #907060, 7px 14px #b09080, 14px 14px #b09080, 21px 14px #b09080, 28px 14px #b09080, 35px 14px #b09080, 42px 14px #907060,
+    0 21px #907060, 7px 21px #b09080, 14px 21px #b09080, 21px 21px #b09080, 28px 21px #b09080, 35px 21px #b09080, 42px 21px #907060,
+    0 28px #907060, 7px 28px #b09080, 14px 28px #b09080, 21px 28px #b09080, 28px 28px #b09080, 35px 28px #b09080, 42px 28px #907060,
+    7px 35px #907060, 14px 35px #907060, 21px 35px #907060, 28px 35px #907060, 35px 35px #907060,
+    /* === GIANT EYE center === */
+    14px 14px #f8f8f8, 21px 14px #f8f8f8, 28px 14px #f8f8f8,
+    14px 21px #f8f8f8, 21px 21px #ff6000, 28px 21px #f8f8f8,
+    /* iris */
+    21px 14px #ff8000, 21px 28px #ff8000,
+    /* pupil */
+    21px 21px #300000,
+    /* glow */
+    7px 7px #401000, 35px 7px #401000,
+    /* === BROW ridge === */
+    0 7px #604030, 7px 7px #604030, 42px 7px #604030,
+    /* === MOUTH teeth === */
+    7px 35px #805040, 14px 35px #f8f8f8, 21px 35px #805040, 28px 35px #f8f8f8, 35px 35px #805040,
+    /* === HUGE BODY === */
+    -7px 42px #785040, 0 42px #a07060, 7px 42px #b08070, 14px 42px #b08070, 21px 42px #b08070, 28px 42px #b08070, 35px 42px #a07060, 42px 42px #785040, 49px 42px #785040,
+    -7px 49px #785040, 0 49px #a07060, 7px 49px #b08070, 14px 49px #b08070, 21px 49px #b08070, 28px 49px #b08070, 35px 49px #a07060, 42px 49px #a07060, 49px 49px #785040,
+    -14px 56px #604030, -7px 56px #785040, 0 56px #a07060, 7px 56px #b08070, 14px 56px #b08070, 21px 56px #b08070, 28px 56px #b08070, 35px 56px #a07060, 42px 56px #785040, 49px 56px #604030,
+    -14px 63px #604030, -7px 63px #785040, 0 63px #a07060, 7px 63px #b08070, 14px 63px #b08070, 21px 63px #b08070, 28px 63px #b08070, 35px 63px #a07060, 42px 63px #785040, 49px 63px #604030,
+    /* === CLUB right arm === */
+    42px 35px #604020, 49px 35px #604020, 56px 35px #604020,
+    42px 28px #604020, 49px 28px #705030, 56px 28px #604020,
+    42px 21px #604020, 56px 21px #604020,
+    49px 14px #705030, 56px 14px #705030,
+    49px 7px #705030, 56px 7px #705030,
+    /* club spikes */
+    49px 0 #f8a000, 56px 0 #f8a000,
+    49px -7px #f8a000,
+    /* === LEGS === */
+    7px 70px #785040, 14px 70px #785040, 28px 70px #785040, 35px 70px #785040,
+    7px 77px #604030, 14px 77px #604030, 28px 77px #604030, 35px 77px #604030,
+    /* === SHADOW === */
+    -7px 84px #0a0000, 0 84px #0a0000, 7px 84px #0a0000, 14px 84px #0a0000, 21px 84px #0a0000, 28px 84px #0a0000, 35px 84px #0a0000, 42px 84px #0a0000, 49px 84px #0a0000;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   HIDRA — multi-headed serpent beast
+   zona 3 · verde pantano
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.sp-hidra{width:280px;height:252px;margin-bottom:4px;}
+.sp-hidra::before{
+  width:7px;height:7px;background:#287840;
+  box-shadow:
+    /* === HEAD LEFT === */
+    -28px 0 #309050, -21px 0 #309050, -14px 0 #309050,
+    -28px 7px #30a050, -21px 7px #40b060, -14px 7px #30a050,
+    -28px 14px #30a050, -21px 14px #40b060, -14px 14px #30a050,
+    /* left eye */
+    -21px 7px #ff2000,
+    /* left teeth */
+    -28px 21px #406040, -21px 21px #f8f8f8, -14px 21px #406040,
+    /* === HEAD CENTER === */
+    14px -14px #309050, 21px -14px #309050, 28px -14px #309050,
+    14px -7px #40b060, 21px -7px #50c070, 28px -7px #40b060,
+    14px 0 #40b060, 21px 0 #50c070, 28px 0 #40b060,
+    14px 7px #309050, 21px 7px #40b060, 28px 7px #309050,
+    /* center eye */
+    21px -7px #ff2000,
+    /* center teeth */
+    14px 14px #30a050, 21px 14px #f8f8f8, 28px 14px #f8f8f8, 35px 14px #30a050,
+    /* === HEAD RIGHT === */
+    56px 0 #309050, 63px 0 #309050, 70px 0 #309050,
+    56px 7px #30a050, 63px 7px #40b060, 70px 7px #30a050,
+    56px 14px #30a050, 63px 14px #40b060, 70px 14px #30a050,
+    /* right eye */
+    63px 7px #ff2000,
+    /* right teeth */
+    56px 21px #406040, 63px 21px #f8f8f8, 70px 21px #406040,
+    /* === NECKS === */
+    -14px 28px #287840, -7px 28px #309050,
+    0 28px #309050, 7px 28px #287840,
+    21px 21px #309050, 28px 21px #287840,
+    35px 28px #287840, 42px 28px #309050,
+    49px 28px #287840, 56px 28px #309050,
+    /* === BODY center === */
+    0 35px #287840, 7px 35px #309050, 14px 35px #309050, 21px 35px #40b060, 28px 35px #40b060, 35px 35px #309050, 42px 35px #309050, 49px 35px #287840,
+    0 42px #287840, 7px 42px #309050, 14px 42px #309050, 21px 42px #40b060, 28px 42px #40b060, 35px 42px #309050, 42px 42px #309050, 49px 42px #287840,
+    /* scales */
+    7px 42px #20703a, 21px 42px #20703a, 35px 42px #20703a,
+    0 49px #287840, 7px 49px #287840, 14px 49px #309050, 21px 49px #309050, 28px 49px #309050, 35px 49px #309050, 42px 49px #287840, 49px 49px #287840,
+    /* claws */
+    -7px 56px #208030, 0 56px #309050, 7px 56px #309050,
+    42px 56px #309050, 49px 56px #309050, 56px 56px #208030,
+    -14px 63px #f8f8f8, -7px 63px #f8f8f8,
+    49px 63px #f8f8f8, 56px 63px #f8f8f8,
+    /* tail */
+    14px 63px #287840, 21px 63px #309050, 28px 63px #309050, 35px 63px #287840,
+    21px 70px #208030, 28px 70px #208030,
+    28px 77px #186028,
+    /* shadow */
+    -7px 84px #050f08, 0 84px #050f08, 7px 84px #050f08, 14px 84px #050f08, 21px 84px #050f08, 28px 84px #050f08, 35px 84px #050f08, 42px 84px #050f08, 49px 84px #050f08, 56px 84px #050f08;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   MINOTAURO — bull head, axe, muscles
+   zona 4 · dorado tierra
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.sp-minotauro{width:252px;height:266px;margin-bottom:0;}
+.sp-minotauro::before{
+  width:7px;height:7px;background:#8b5520;
+  box-shadow:
+    /* === HORNS === */
+    0 -14px #d0a040, -7px -7px #d0a040,
+    42px -14px #d0a040, 49px -7px #d0a040,
+    0 -7px #c09030, 49px -7px #c09030,
+    /* === HEAD (bull) === */
+    7px 0 #9b6530, 14px 0 #9b6530, 21px 0 #9b6530, 28px 0 #9b6530, 35px 0 #9b6530,
+    0 7px #8b5520, 7px 7px #ab7540, 14px 7px #ab7540, 21px 7px #ab7540, 28px 7px #ab7540, 35px 7px #ab7540, 42px 7px #8b5520,
+    0 14px #8b5520, 7px 14px #ab7540, 14px 14px #ab7540, 21px 14px #ab7540, 28px 14px #ab7540, 35px 14px #ab7540, 42px 14px #8b5520,
+    0 21px #8b5520, 7px 21px #ab7540, 14px 21px #ab7540, 21px 21px #ab7540, 28px 21px #ab7540, 35px 21px #ab7540, 42px 21px #8b5520,
+    /* === EYES red angry === */
+    7px 14px #d00000, 35px 14px #d00000,
+    /* === SNOUT === */
+    14px 28px #7a4410, 21px 28px #7a4410, 28px 28px #7a4410,
+    14px 35px #7a4410, 21px 35px #5a2800, 28px 35px #7a4410,
+    /* nostrils */
+    14px 35px #3a1000, 28px 35px #3a1000,
+    /* === MASSIVE BODY === */
+    -7px 42px #7a4410, 0 42px #9b6530, 7px 42px #ab7540, 14px 42px #ab7540, 21px 42px #ab7540, 28px 42px #ab7540, 35px 42px #9b6530, 42px 42px #7a4410, 49px 42px #7a4410,
+    -7px 49px #7a4410, 0 49px #9b6530, 7px 49px #ab7540, 14px 49px #ab7540, 21px 49px #ab7540, 28px 49px #ab7540, 35px 49px #9b6530, 42px 49px #9b6530, 49px 49px #7a4410,
+    -14px 56px #6a3400, -7px 56px #7a4410, 0 56px #9b6530, 7px 56px #ab7540, 14px 56px #b08050, 21px 56px #b08050, 28px 56px #ab7540, 35px 56px #9b6530, 42px 56px #7a4410, 49px 56px #6a3400,
+    -14px 63px #6a3400, -7px 63px #7a4410, 0 63px #8b5520, 7px 63px #9b6530, 14px 63px #ab7540, 21px 63px #ab7540, 28px 63px #9b6530, 35px 63px #8b5520, 42px 63px #7a4410, 49px 63px #6a3400,
+    /* === DOUBLE AXE right === */
+    49px 35px #888888, 56px 35px #888888, 63px 28px #c0c0c0, 63px 35px #c0c0c0, 63px 42px #c0c0c0, 56px 21px #c0c0c0, 56px 42px #c0c0c0,
+    /* axe shine */
+    63px 28px #f8f8f8, 56px 21px #f8f8f8,
+    /* === LEGS === */
+    7px 70px #7a4410, 14px 70px #7a4410, 28px 70px #7a4410, 35px 70px #7a4410,
+    7px 77px #6a3400, 14px 77px #6a3400, 28px 77px #6a3400, 35px 77px #6a3400,
+    /* hooves */
+    7px 84px #3a1800, 14px 84px #3a1800, 28px 84px #3a1800, 35px 84px #3a1800,
+    /* === SHADOW === */
+    -7px 91px #0c0500, 0 91px #0c0500, 7px 91px #0c0500, 14px 91px #0c0500, 21px 91px #0c0500, 28px 91px #0c0500, 35px 91px #0c0500, 42px 91px #0c0500, 49px 91px #0c0500;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CERBERO — THREE HEADED HELLHOUND
+   zona 5 · púrpura Olimpo · BOSS FINAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.sp-cerbero{width:308px;height:266px;margin-bottom:0;}
+.sp-cerbero::before{
+  width:7px;height:7px;background:#2a1040;
+  box-shadow:
+    /* === HEAD LEFT === */
+    -14px -7px #4a2060, -7px -7px #4a2060,
+    -21px 0 #3a1050, -14px 0 #5a3070, -7px 0 #5a3070, 0 0 #3a1050,
+    -21px 7px #3a1050, -14px 7px #5a3070, -7px 7px #5a3070, 0 7px #3a1050,
+    -21px 14px #3a1050, -14px 14px #4a2060, -7px 14px #4a2060, 0 14px #3a1050,
+    /* left eye glow red */
+    -14px 7px #ff0000, -7px 7px #800000,
+    /* left ears pointy */
+    -28px -7px #2a1040, -28px 0 #3a1050,
+    /* left teeth */
+    -21px 21px #4a2060, -14px 21px #f8f8f8, -7px 21px #f8f8f8, 0 21px #4a2060,
+    /* === HEAD CENTER (tallest) === */
+    21px -21px #5a3070, 28px -21px #5a3070,
+    14px -14px #4a2060, 21px -14px #6a4080, 28px -14px #6a4080, 35px -14px #4a2060,
+    14px -7px #4a2060, 21px -7px #6a4080, 28px -7px #6a4080, 35px -7px #4a2060,
+    14px 0 #4a2060, 21px 0 #7a5090, 28px 0 #7a5090, 35px 0 #4a2060,
+    14px 7px #4a2060, 21px 7px #7a5090, 28px 7px #7a5090, 35px 7px #4a2060,
+    14px 14px #4a2060, 21px 14px #6a4080, 28px 14px #6a4080, 35px 14px #4a2060,
+    /* center eye — burning */
+    21px 0 #ff4000, 28px 0 #ff8000,
+    /* center horns */
+    14px -21px #d0a000, 35px -21px #d0a000,
+    /* center teeth */
+    14px 21px #4a2060, 21px 21px #f8f8f8, 28px 21px #4a2060, 35px 21px #f8f8f8, 42px 21px #4a2060,
+    /* === HEAD RIGHT === */
+    49px -7px #4a2060, 56px -7px #4a2060,
+    42px 0 #3a1050, 49px 0 #5a3070, 56px 0 #5a3070, 63px 0 #3a1050,
+    42px 7px #3a1050, 49px 7px #5a3070, 56px 7px #5a3070, 63px 7px #3a1050,
+    42px 14px #3a1050, 49px 14px #4a2060, 56px 14px #4a2060, 63px 14px #3a1050,
+    /* right eye */
+    49px 7px #ff0000, 56px 7px #800000,
+    /* right ear */
+    70px 0 #3a1050, 70px 7px #2a1040,
+    /* right teeth */
+    42px 21px #4a2060, 49px 21px #f8f8f8, 56px 21px #f8f8f8, 63px 21px #4a2060,
+    /* === THREE NECKS merge to body === */
+    -7px 28px #3a1050, 0 28px #4a2060,
+    7px 28px #4a2060, 14px 28px #3a1050,
+    35px 28px #3a1050, 42px 28px #4a2060,
+    49px 28px #3a1050, 56px 28px #4a2060,
+    /* === MASSIVE BODY === */
+    0 35px #3a1050, 7px 35px #4a2060, 14px 35px #5a3070, 21px 35px #5a3070, 28px 35px #5a3070, 35px 35px #5a3070, 42px 35px #4a2060, 49px 35px #3a1050,
+    0 42px #3a1050, 7px 42px #5a3070, 14px 42px #6a4080, 21px 42px #6a4080, 28px 42px #6a4080, 35px 42px #6a4080, 42px 42px #5a3070, 49px 42px #3a1050,
+    -7px 49px #2a1040, 0 49px #4a2060, 7px 49px #5a3070, 14px 49px #6a4080, 21px 49px #6a4080, 28px 49px #6a4080, 35px 49px #6a4080, 42px 49px #5a3070, 49px 49px #4a2060, 56px 49px #2a1040,
+    -7px 56px #2a1040, 0 56px #3a1050, 7px 56px #4a2060, 14px 56px #5a3070, 21px 56px #5a3070, 28px 56px #5a3070, 35px 56px #5a3070, 42px 56px #4a2060, 49px 56px #3a1050, 56px 56px #2a1040,
+    /* === SCORPION TAIL === */
+    49px 28px #5a3070, 56px 21px #5a3070, 63px 14px #5a3070, 63px 7px #4a2060,
+    63px 0 #d0a000,  /* stinger */
+    /* === FOUR LEGS === */
+    -7px 63px #3a1050, 0 63px #3a1050,
+    7px 63px #4a2060, 14px 63px #4a2060,
+    35px 63px #4a2060, 42px 63px #4a2060,
+    49px 63px #3a1050, 56px 63px #3a1050,
+    /* paws */
+    -7px 70px #2a1040, 0 70px #2a1040,
+    7px 70px #3a1050, 14px 70px #3a1050,
+    35px 70px #3a1050, 42px 70px #3a1050,
+    49px 70px #2a1040, 56px 70px #2a1040,
+    /* claws */
+    -14px 77px #f8f8f8, -7px 77px #f8f8f8,
+    7px 77px #f8f8f8, 14px 77px #f8f8f8,
+    35px 77px #f8f8f8, 42px 77px #f8f8f8,
+    49px 77px #f8f8f8, 56px 77px #f8f8f8,
+    /* === SHADOW === */
+    -14px 84px #08000f, -7px 84px #08000f, 0 84px #08000f, 7px 84px #08000f, 14px 84px #08000f, 21px 84px #08000f, 28px 84px #08000f, 35px 84px #08000f, 42px 84px #08000f, 49px 84px #08000f, 56px 84px #08000f, 63px 84px #08000f;
+}
+
+</style>
+</head>
+<body>
+<div id="GAME">
+
+<!-- ══ TITLE ══ -->
+<div class="SCR ON" id="S_TITLE">
+  <div class="title-bg"></div>
+  <div class="stars"></div>
+  <div class="t-mountain">
+    <div class="t-mtn-c"></div>
+    <div class="t-mtn-d"></div>
+    <div class="t-mtn-a"></div>
+    <div class="t-mtn-b"></div>
+    <div class="t-ground"></div>
+    <div class="t-temple">
+      <div class="t-entab2"></div>
+      <div class="t-entab"></div>
+      <div class="t-col" style="left:10px;height:120px"></div>
+      <div class="t-col" style="left:44px;height:120px"></div>
+      <div class="t-col" style="left:78px;height:120px"></div>
+      <div class="t-col" style="left:112px;height:120px"></div>
+      <div class="t-col" style="left:146px;height:120px"></div>
+      <div class="t-col" style="left:180px;height:120px"></div>
+    </div>
+  </div>
+  <div class="logo-wrap">
+    <span class="logo-1">OLIMPO</span>
+    <span class="logo-1" style="margin-top:-4px">RPG</span>
+    <span class="logo-2">★ DEL CONOCER ★</span>
+    <span class="logo-3">PENSAMIENTO FILOSÓFICO II · CBTS 179 · 4TO SEM</span>
+  </div>
+  <div class="press-start">— TOCA PARA INICIAR —</div>
+  <div class="title-copy">© LUIS EDUARDO IBARRA HERNÁNDEZ · CBTS 179 DGETI</div>
+</div>
+
+<!-- ══ NAME ══ -->
+<div class="SCR" id="S_NAME" style="background:#000820;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;">
+  <div class="name-box">
+    <div class="name-box-title">UN ESTUDIANTE SE ACERCA<br>AL MONTE OLIMPO...<br><br>¿CUÁL ES TU NOMBRE?</div>
+    <div class="name-row">
+      <span class="px-lbl">NOMBRE:</span>
+      <input class="px-input" id="nameInput" maxlength="9" value="HÉROE" />
+    </div>
+  </div>
+  <button class="px-btn" onclick="confirmName()">▶ COMENZAR</button>
+</div>
+
+<!-- ══ MAP ══ -->
+<div class="SCR" id="S_MAP">
+  <div class="map-header">
+    <span class="map-title">★ MONTE OLIMPO</span>
+    <span class="map-hp" id="mapHpTxt">HP ---/---</span>
+  </div>
+  <div class="zones-grid" id="zonesGrid"></div>
+</div>
+
+<!-- ══ BATTLE ══ -->
+<div class="SCR" id="S_BATTLE" style="display:none;flex-direction:column;">
+  <!-- enemy area -->
+  <div class="battle-enemy-zone" id="battleEnemyZone">
+    <div class="be-sky" id="beSky"></div>
+    <div class="be-mid" id="beMid"></div>
+    <div class="be-gnd" id="beGnd"></div>
+    <div class="be-floor"></div>
+    <!-- side columns -->
+    <div class="be-col" style="left:8px;height:65%"></div>
+    <div class="be-col" style="right:8px;height:65%"></div>
+    <div class="be-col" style="left:28px;height:50%"></div>
+    <div class="be-col" style="right:28px;height:50%"></div>
+    <!-- enemy sprite -->
+    <div class="enemy-sprite-wrap enemy-bob" id="enemySpriteWrap">
+      <div id="enemySpriteEl"></div>
+    </div>
+    <!-- enemy HUD -->
+    <div class="enemy-hud">
+      <div class="ehud-name" id="eHudName">???</div>
+      <div class="ehud-topic" id="eHudTopic">???</div>
+      <div class="hprow">
+        <span class="hplbl">HP</span>
+        <div class="hptrack"><div class="hpfill" id="eHpFill" style="background:var(--red2);width:100%"></div></div>
+        <span class="hpval" id="eHpVal">??/??</span>
+      </div>
+    </div>
+    <!-- flash -->
+    <div class="atk-flash" id="atkFlash"></div>
+  </div>
+
+  <!-- battle UI -->
+  <div class="battle-ui">
+    <div class="player-ribbon">
+      <span class="pstat"><span class="lbl">LVL </span><span class="val" id="pLvl">1</span></span>
+      <span class="pstat"><span class="lbl">HP </span><span class="val" id="pHp" style="color:var(--green2)">---</span></span>
+      <span class="pstat"><span class="lbl">ATK </span><span class="val" id="pAtk">28</span></span>
+      <span class="pstat"><span class="lbl">ZONA </span><span class="val" id="pZone" style="color:var(--gold)">-</span></span>
+    </div>
+    <div class="txt-win" id="txtWin"></div>
+    <div class="cmd-zone">
+      <div class="main-menu" id="mainMenu">
+        <button class="cmd" onclick="doBattle()"><span class="ci">⚔</span>LUCHAR</button>
+        <button class="cmd" onclick="doDefend()"><span class="ci">🛡</span>DEFENDER</button>
+        <button class="cmd" onclick="doHint()" id="hintBtn"><span class="ci">📜</span>PISTA</button>
+        <button class="cmd" onclick="doRun()"><span class="ci">🏃</span>HUIR</button>
+      </div>
+      <div class="q-panel" id="qPanel">
+        <div class="q-text" id="qText"></div>
+        <div class="q-choices" id="qChoices"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ WIN ══ -->
+<div class="SCR" id="S_WIN">
+  <div class="res-title" id="winTitle" style="color:var(--gold)"></div>
+  <div class="res-sub" id="winSub"></div>
+  <div class="res-box">
+    <div class="res-box-lbl">⭐ CONCEPTO DOMINADO</div>
+    <div class="res-box-val" id="winLoot"></div>
+  </div>
+  <button class="big-btn" onclick="goMap()" style="margin-top:8px">← OLIMPO</button>
+</div>
+
+<!-- ══ LOSE ══ -->
+<div class="SCR" id="S_LOSE">
+  <div class="res-title" style="color:var(--red2)">CAÍSTE...<br>&#x2620;</div>
+  <div class="res-sub" id="loseSub"></div>
+  <button class="big-btn" onclick="retry()">↺ REINTENTAR</button>
+  <button class="big-btn dim" onclick="goMap()" style="margin-top:4px">← OLIMPO</button>
+</div>
+
+<!-- ══ END ══ -->
+<div class="SCR" id="S_END">
+  <div class="res-title" style="color:var(--gold);font-size:11px">★ FELICIDADES ★<br><span style="font-size:9px">OLIMPO CONQUISTADO</span></div>
+  <div class="res-sub">Has derrotado a todos los<br>filósofos del Monte Olimpo.<br><br>Atenea te corona:<br>"MAESTRO DEL CONOCER"</div>
+  <button class="big-btn" onclick="restart()">★ NUEVA PARTIDA ★</button>
+</div>
+
+</div><!-- #GAME -->
+
+<script>
+// ══════════════════════════════════════════════════
+//  ZONE + BATTLE DATA
+// ══════════════════════════════════════════════════
+const ZONES = [
+  {
+    id:'z1',
+    name:'ÁGORA DEL SER',
+    num:'ZONA I',
+    boss:'MEDUSA',
+    topic:'Ontología y el Ser',
+    sprite:'sp-medusa',
+    sky:'linear-gradient(180deg,#081828,#102848)',
+    mid:'#060e1e',
+    gnd:'#030810',
+    emoji:'🐍',
+    hp:80, atk:12,
+    reward:'El Ser como\nfundamento de la realidad',
+    quote:'"La mirada de Medusa\npetrifica al ignorante.\nEl conocimiento te libera."\n— Mito Griego',
+    qs:[
+      {q:'¿Qué estudia la ONTOLOGÍA según el prog.?',o:['Las leyes físicas','El Ser en general y sus propiedades','Los números y el álgebra','Las reglas del lenguaje'],a:1,e:'La Ontología estudia el Ser en general: qué existe y cómo existe.'},
+      {q:'El ASOMBRO como origen de la filosofía significa:',o:['Un truco de memoria','El punto de partida del preguntar filosófico','Un tipo de argumento lógico','Una técnica de estudio'],a:1,e:'El asombro (thaumazein griego) es el impulso original del filosofar.'},
+      {q:'¿Qué diferencia REALIDAD de APARIENCIA?',o:['Son el mismo concepto','La realidad es permanente; la apariencia puede engañar','La apariencia es más verdadera','No existe diferencia'],a:1,e:'Desde Platón: la apariencia puede engañar; la realidad es lo verdaderamente existente.'},
+      {q:'La EXISTENCIA en filosofía implica:',o:['Solo el hecho físico de estar','El estar-en-el-mundo con conciencia de ello','La duración de vida biológica','La ciudadanía legal'],a:1,e:'Existencia = estar-en-el-mundo con conciencia (Dasein heideggeriano).'},
+      {q:'La METAFÍSICA trata de:',o:['Magia y fenómenos paranormales','Los principios y causas universales del saber','Solo la física cuántica','La historia de la ciencia'],a:1,e:'La Metafísica reflexiona sobre los principios y causas primeras de la realidad.'},
+    ]
+  },
+  {
+    id:'z2',
+    name:'CAVERNA DEL CÍCLOPE',
+    num:'ZONA II',
+    boss:'CÍCLOPE POLIFEMO',
+    topic:'Ética, Moral y Justicia',
+    sprite:'sp-ciclope',
+    sky:'linear-gradient(180deg,#380000,#500808)',
+    mid:'#280000',
+    gnd:'#180000',
+    emoji:'👁️',
+    hp:90, atk:14,
+    reward:'Los fundamentos éticos\nguían nuestras decisiones',
+    quote:'"El Cíclope ve solo\ncon un ojo.\nLa ética amplía nuestra visión."\n— Odisea',
+    qs:[
+      {q:'¿Qué es la ÉTICA filosófica?',o:['Normas de etiqueta social','Reflexión racional sobre la conducta moral','Reglas de gobierno','Preceptos religiosos'],a:1,e:'La Ética es la disciplina filosófica que reflexiona sobre el bien, el mal y la conducta.'},
+      {q:'Un DILEMA MORAL es una situación donde:',o:['Hay una respuesta obvia','Valores entran en conflicto sin solución única','Se aplica la ley civil','Se resuelve con matemáticas'],a:1,e:'Los dilemas morales presentan disyuntivas donde no existe una salida simple.'},
+      {q:'La JUSTICIA como valor filosófico es:',o:['Solo competencia de abogados','Principio ético que orienta la vida justa en sociedad','Concepto obsoleto de Grecia','Solo existe en la ley escrita'],a:1,e:'Justicia, Libertad e Igualdad son pilares filosóficos de la vida social.'},
+      {q:'La relación ÉTICA-POLÍTICA implica:',o:['Son campos opuestos','La Ética provee valores que deben guiar la política','La política ignora la ética','Son campos idénticos'],a:1,e:'Aristóteles: la política debe orientarse al bien común según principios éticos.'},
+      {q:'Los CRITERIOS MORALES son:',o:['Las leyes escritas del Estado','Estándares para juzgar si una acción es correcta','Las opiniones de la mayoría','Las tradiciones familiares'],a:1,e:'Los criterios morales son los principios que usamos para valorar la corrección de las acciones.'},
+    ]
+  },
+  {
+    id:'z3',
+    name:'PANTANO DE LA HIDRA',
+    num:'ZONA III',
+    boss:'HIDRA DE LERNA',
+    topic:'Bioética y Tecnología',
+    sprite:'sp-hidra',
+    sky:'linear-gradient(180deg,#042018,#063028)',
+    mid:'#021810',
+    gnd:'#010c08',
+    emoji:'🐲',
+    hp:85, atk:13,
+    reward:'El avance científico requiere\nconciencia ética crítica',
+    quote:'"Si cortas una cabeza\ncrecen dos más.\nSin ética, la ciencia\nse vuelve monstruo."\n— Mito de Hércules',
+    qs:[
+      {q:'¿Qué estudia la BIOÉTICA?',o:['Solo la medicina clínica','El actuar humano y deberes éticos con toda forma de vida','La biología celular','Las leyes sanitarias'],a:1,e:'La Bioética reflexiona sobre responsabilidades éticas con la vida en todas sus formas.'},
+      {q:'La IA y la filosofía se relacionan porque:',o:['La IA programa computadoras','Plantea preguntas sobre la naturaleza del Ser y lo humano','Solo interesa al diseño industrial','Es un tema solo económico'],a:1,e:'La IA plantea dilemas ontológicos: ¿puede una máquina "ser"? ¿Qué nos hace humanos?'},
+      {q:'El medioambiente como postura ÉTICA implica:',o:['Solo ingeniería ambiental','Responsabilidad moral hacia la naturaleza y generaciones futuras','Cuestiones solo económicas','Política industrial'],a:1,e:'La crisis ambiental es un dilema ético: tenemos obligaciones morales con el planeta.'},
+      {q:'La FILOSOFÍA DE LA ANIMALIDAD busca:',o:['Comparar razas de animales','Reconocer formas de vida más allá de la dicotomía humano-animal','Entrenamiento animal','Solo conducta animal'],a:1,e:'Cuestiona la división humano/animal y reivindica el respeto a toda forma de vida.'},
+      {q:'Las posturas BIOÉTICAS sobre tecnología plantean:',o:['La tecnología siempre beneficia','El avance científico debe evaluarse éticamente','La ciencia es completamente neutral','Solo los científicos deciden'],a:1,e:'La Bioética exige evaluar si los avances respetan la dignidad humana y la vida.'},
+    ]
+  },
+  {
+    id:'z4',
+    name:'VOZ DE ANTÍGONA',
+    num:'ZONA IV',
+    boss:'MINOTAURO',
+    topic:'Perspectiva de Género',
+    sprite:'sp-minotauro',
+    sky:'linear-gradient(180deg,#302000,#483010)',
+    mid:'#201800',
+    gnd:'#100c00',
+    emoji:'🐂',
+    hp:95, atk:15,
+    reward:'Las desigualdades de género\nse analizan filosóficamente',
+    quote:'"El Minotauro vive\natrapado en su laberinto.\nEl pensamiento crítico\nrompe estructuras opresoras."\n— Mito del Laberinto',
+    qs:[
+      {q:'La PERSPECTIVA DE GÉNERO visibiliza que:',o:['Las diferencias son puramente biológicas','La desigualdad responde a construcciones sociales no biológicas','El género no es filosófico','Solo afecta a las mujeres'],a:1,e:'La perspectiva de género diferencia entre características anatómicas y roles socialmente construidos.'},
+      {q:'Los FEMINISMOS EN MÉXICO son:',o:['Un único movimiento uniforme','Diversas corrientes con perspectivas filosóficas propias','Solo el movimiento del 8M','La historia de mujeres famosas'],a:1,e:'Feminismo indígena, académico, popular, radical: distintas perspectivas filosóficas en México.'},
+      {q:'Las SUBJETIVIDADES TRANS en filosofía son:',o:['Un género artístico','Formas de existir del ser trans, objeto de reflexión filosófica','Un movimiento musical','Una corriente política'],a:1,e:'Las subjetividades trans son formas de experiencia del Ser que la filosofía debe reconocer.'},
+      {q:'Una POSTURA POLÍTICA frente al género implica:',o:['Solo votar en elecciones','Comprometerse a transformar estructuras que generan desigualdad','Apoyar un partido','Estudiar ciencias políticas'],a:1,e:'Postura política = comprometerse activamente con la transformación de injusticias estructurales.'},
+      {q:'Las DESIGUALDADES DE GÉNERO son filosóficas porque:',o:['Son solo estadísticas','Revelan estructuras de poder que afectan la existencia humana','No son filosóficas','Solo las viven algunas personas'],a:1,e:'Las experiencias de desigualdad son puntos de partida filosóficos para analizar estructuras de poder.'},
+    ]
+  },
+  {
+    id:'z5',
+    name:'PUERTAS DEL INFRAMUNDO',
+    num:'ZONA V — BOSS FINAL',
+    boss:'CERBERO',
+    topic:'Humanismo Mexicano\ny Praxis',
+    sprite:'sp-cerbero',
+    sky:'linear-gradient(180deg,#180030,#280050)',
+    mid:'#100020',
+    gnd:'#060010',
+    emoji:'🐕',
+    hp:120, atk:18,
+    reward:'El Humanismo Mexicano\nintegra todos los saberes\nfilosóficos del semestre',
+    quote:'"Tres cabezas guarda\nlas puertas del Hades.\nTres preguntas guarda\nel Humanismo:\n¿Quiénes somos?\n¿De dónde venimos?\n¿Hacia dónde vamos?"\n— Humanismo Mexicano',
+    qs:[
+      {q:'La PRAXIS TRANSFORMADORA significa:',o:['Solo leer filosofía','Unir teoría y acción para transformar la realidad','Usar tecnología futura','Predecir el futuro'],a:1,e:'Praxis (Sánchez, 2003): unión íntima de teoría y práctica que transforma la realidad.'},
+      {q:'"HACIA UN MUNDO HABITABLE Y JUSTO" implica:',o:['Construir mejores edificios','Reflexionar filosóficamente sobre condiciones de vida digna','Solo economía','Urbanismo moderno'],a:1,e:'Integra Ética, Bioética y Humanismo para pensar una sociedad más justa y digna.'},
+      {q:'El HUMANISMO MEXICANO es:',o:['Solo muralismo artístico','Visión filosófica que recupera identidad y valores de México','Solo la Revolución Mexicana','El pensamiento de Juárez'],a:1,e:'Integra indigenismo, mestizaje, justicia social y dignidad humana como ejes filosóficos.'},
+      {q:'"ÉTICA DEL PENSAMIENTO" como cierre del prog. significa:',o:['Reglas gramaticales','El pensamiento filosófico tiene responsabilidad: cómo pensamos afecta cómo actuamos','Memorizar principios éticos','Ética de los profesores'],a:1,e:'La ética del pensamiento: nuestra forma de razonar y los valores asumidos tienen consecuencias reales.'},
+      {q:'El PROPÓSITO 5 del programa integra saberes para:',o:['Hacer un examen final','Elaborar reflexiones sobre problemas contemporáneos con perspectiva humanista','Memorizar filósofos','Solo escribir un ensayo'],a:1,e:'El Propósito 5 articula Ontología, Ética, Bioética, Género e Interculturalidad en una reflexión integradora.'},
+    ]
+  },
+];
+
+// ══════════════════════════════════════════════════
+//  GAME STATE
+// ══════════════════════════════════════════════════
+const G = {
+  name:'HÉROE',
+  hp:100, maxHp:100, atk:28, lvl:1,
+  zone:null,
+  eHp:0, eMaxHp:0,
+  qPool:[], qIdx:0,
+  done:[],
+  busy:false,
+  defending:false,
+  hintUsed:false,
+};
+
+// ── SCREEN SWITCHER ──
+function show(id){
+  document.querySelectorAll('.SCR').forEach(s=>{
+    s.classList.remove('ON');
+    s.style.display='none';
+  });
+  const el=document.getElementById(id);
+  el.style.display='';
+  el.classList.add('ON');
+  // flex screens
+  if(['S_NAME','S_WIN','S_LOSE','S_END'].includes(id)) el.style.display='flex';
+  if(id==='S_BATTLE') el.style.display='flex';
+}
+
+// ── TITLE ──
+document.getElementById('S_TITLE').addEventListener('click',()=>show('S_NAME'));
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('S_TITLE').classList.contains('ON')) show('S_NAME');
+});
+setTimeout(()=>document.getElementById('nameInput')&&document.getElementById('nameInput').focus(),200);
+
+// ── NAME ──
+function confirmName(){
+  const v=document.getElementById('nameInput').value.trim();
+  G.name=v||'HÉROE';
+  G.hp=100;G.maxHp=100;G.done=[];G.lvl=1;
+  goMap();
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const ni=document.getElementById('nameInput');
+  if(ni) ni.addEventListener('keydown',e=>{if(e.key==='Enter')confirmName();});
+});
+
+// ── MAP ──
+function goMap(){
+  document.getElementById('mapHpTxt').textContent=`HP ${G.hp}/${G.maxHp}`;
+  buildMap();
+  show('S_MAP');
+  if(G.done.length===ZONES.length){ setTimeout(()=>show('S_END'),400); }
+}
+
+function buildMap(){
+  const grid=document.getElementById('zonesGrid');
+  grid.innerHTML='';
+  ZONES.forEach((z,i)=>{
+    const done=G.done.includes(z.id);
+    const locked=i>0&&!G.done.includes(ZONES[i-1].id);
+    const card=document.createElement('div');
+    card.className='zone-card'+(done?' cleared':'')+(locked?' locked':'');
+    card.innerHTML=`
+      <div class="z-sky" style="background:${z.sky}"></div>
+      <div class="z-mid" style="background:${z.mid}"></div>
+      <div class="z-gnd" style="background:${z.gnd}"></div>
+      <div class="z-overlay"></div>
+      <div class="z-sprite">${z.emoji}</div>
+      ${done?'<div class="z-clear">★CLEAR</div>':''}
+      <div class="z-info">
+        <div class="z-name">${z.num}\n${z.name}</div>
+        <div class="z-boss">BOSS: ${z.boss}</div>
+        <div class="z-stat" style="color:${done?'#00e800':locked?'#d00000':'#f8b800'}">${done?'COMPLETADA':locked?'BLOQUEADA':'DISPONIBLE'}</div>
+      </div>`;
+    if(!done&&!locked) card.addEventListener('click',()=>startBattle(z));
+    grid.appendChild(card);
+  });
+}
+
+// ══ BATTLE ══
+function startBattle(zone){
+  G.zone=zone;
+  G.eHp=zone.hp; G.eMaxHp=zone.hp;
+  G.qPool=shuffle([...zone.qs]); G.qIdx=0;
+  G.busy=false; G.defending=false; G.hintUsed=false;
+
+  // bg layers
+  document.getElementById('beSky').style.background=zone.sky;
+  document.getElementById('beMid').style.background=zone.mid;
+  document.getElementById('beGnd').style.background=zone.gnd;
+
+  // sprite
+  const sw=document.getElementById('enemySpriteWrap');
+  sw.className='enemy-sprite-wrap enemy-bob';
+  document.getElementById('enemySpriteEl').innerHTML=`<div class="sp ${zone.sprite}"></div>`;
+
+  // HUD
+  document.getElementById('eHudName').textContent=zone.boss;
+  document.getElementById('eHudTopic').textContent=zone.topic;
+  document.getElementById('pHp').textContent=`${G.hp}/${G.maxHp}`;
+  document.getElementById('pAtk').textContent=G.atk;
+  document.getElementById('pZone').textContent=`Z${ZONES.indexOf(zone)+1}`;
+  document.getElementById('pLvl').textContent=G.lvl;
+
+  updateEHp();
+  show('S_BATTLE');
+  showMenu();
+  setText([{t:`¡${zone.boss} aparece!`,c:'t-sys'},{t:'¿Qué harás?',c:''}]);
+}
+
+function showMenu(){
+  document.getElementById('mainMenu').style.display='grid';
+  document.getElementById('qPanel').classList.remove('on');
+  G.busy=false;
+}
+
+// ── COMMANDS ──
+function doBattle(){
+  if(G.busy)return;
+  document.getElementById('mainMenu').style.display='none';
+  loadQ();
+}
+function doDefend(){
+  if(G.busy)return;
+  G.defending=true;
+  setText([{t:G.name+' se defiende.',c:'t-sys'},{t:'Daño reducido este turno.',c:''}]);
+  setTimeout(()=>enemyTurn(false,0),700);
+}
+function doHint(){
+  if(G.busy||G.hintUsed)return;
+  G.hintUsed=true;
+  document.getElementById('hintBtn').disabled=true;
+  const q=G.qPool[G.qIdx%G.qPool.length];
+  const wrong=q.o.filter((_,i)=>i!==q.a);
+  const elim=wrong[Math.floor(Math.random()*wrong.length)];
+  setText([{t:'PISTA: NO es esta opción...',c:'t-sys'},{t:'"'+elim+'"',c:'t-bad'}]);
+  setTimeout(()=>doBattle(),1100);
+}
+function doRun(){
+  if(G.busy)return;
+  if(Math.random()<0.4){
+    setText([{t:'¡Escapaste!',c:'t-sys'}]);
+    setTimeout(goMap,900);
+  }else{
+    setText([{t:G.zone.boss+' bloquea tu huida!',c:'t-bad'}]);
+    setTimeout(()=>enemyTurn(true,10),700);
+  }
+}
+
+// ── QUESTION ──
+function loadQ(){
+  if(G.qIdx>=G.qPool.length){G.qPool=shuffle([...G.zone.qs]);G.qIdx=0;}
+  const q=G.qPool[G.qIdx];
+  document.getElementById('qText').textContent=q.q;
+  const ch=document.getElementById('qChoices');
+  ch.innerHTML='';
+  ['A','B','C','D'].forEach((ltr,i)=>{
+    const btn=document.createElement('button');
+    btn.className='qbtn';
+    btn.innerHTML=`<span class="qltr">${ltr})</span>${q.o[i]}`;
+    btn.onclick=()=>answerQ(i,q,btn);
+    ch.appendChild(btn);
+  });
+  document.getElementById('qPanel').classList.add('on');
+  setText([{t:'⚡ ATAQUE FILOSÓFICO',c:'t-sys'},{t:'Responde para atacar.',c:''}]);
+}
+
+function answerQ(idx,q,btn){
+  if(G.busy)return;
+  G.busy=true;
+  document.querySelectorAll('.qbtn').forEach(b=>b.disabled=true);
+
+  if(idx===q.a){
+    btn.classList.add('correct');
+    const dmg=G.atk+Math.floor(Math.random()*12);
+    G.eHp=Math.max(0,G.eHp-dmg);
+    setText([{t:'CORRECTO!  -'+dmg+' HP',c:'t-good'},{t:q.e,c:''}]);
+    flashEnemy('#0038b8',dmg,'#f8c800');
+    G.qIdx++;
+    setTimeout(()=>{
+      updateEHp();
+      if(G.eHp<=0){winBattle();return;}
+      setTimeout(()=>enemyTurn(true,0),500);
+    },1100);
+  }else{
+    btn.classList.add('wrong');
+    document.querySelectorAll('.qbtn')[q.a].classList.add('correct');
+    setText([{t:'✗ INCORRECTO',c:'t-bad'},{t:'El boss contraataca!',c:'t-dmg'}]);
+    G.qIdx++;
+    setTimeout(()=>enemyTurn(true,8),900);
+  }
+}
+
+function enemyTurn(attack,bonus){
+  let dmg=(G.zone.atk+Math.floor(Math.random()*8)+bonus);
+  if(G.defending){dmg=Math.max(1,Math.floor(dmg*.35));G.defending=false;}
+  if(attack&&dmg>0){
+    G.hp=Math.max(0,G.hp-dmg);
+    spawnDmg(dmg,'#f84800',false);
+    flashScreen('#d0000040');
+    document.getElementById('pHp').textContent=`${G.hp}/${G.maxHp}`;
+    const hcol=G.hp>G.maxHp*.5?'var(--green2)':G.hp>G.maxHp*.25?'var(--orange)':'var(--red2)';
+    document.getElementById('pHp').style.color=hcol;
+  }
+  if(G.hp<=0){setTimeout(loseBattle,500);return;}
+  G.busy=false;
+  document.getElementById('qPanel').classList.remove('on');
+  setTimeout(()=>{
+    setText([{t:G.zone.boss+' aguarda...',c:'t-sys'},{t:'¿Qué harás?',c:''}]);
+    showMenu();
+  },500);
+}
+
+// ── EFFECTS ──
+function flashEnemy(color,dmg,numColor){
+  const sw=document.getElementById('enemySpriteWrap');
+  sw.classList.remove('enemy-bob');
+  sw.classList.add('enemy-shake-anim');
+  const f=document.getElementById('atkFlash');
+  f.style.background=color; f.style.opacity='.4';
+  setTimeout(()=>{f.style.opacity='0'; sw.classList.remove('enemy-shake-anim'); sw.classList.add('enemy-bob');},380);
+  spawnDmg(dmg,numColor,true);
+}
+function flashScreen(color){
+  const f=document.getElementById('atkFlash');
+  f.style.background=color; f.style.opacity='1';
+  setTimeout(()=>f.style.opacity='0',220);
+}
+function spawnDmg(val,color,onEnemy){
+  const el=document.createElement('div');
+  el.className='dmg-float';
+  el.textContent='-'+val;
+  el.style.color=color;
+  el.style.left=onEnemy?'42%':'10%';
+  el.style.top=onEnemy?'40%':'70%';
+  document.getElementById('battleEnemyZone').appendChild(el);
+  setTimeout(()=>el.remove(),950);
+}
+function updateEHp(){
+  const p=(G.eHp/G.eMaxHp)*100;
+  document.getElementById('eHpFill').style.width=p+'%';
+  document.getElementById('eHpFill').style.background=p>50?'var(--red2)':p>25?'var(--orange)':'#f82800';
+  document.getElementById('eHpVal').textContent=`${G.eHp}/${G.eMaxHp}`;
+}
+
+// ── TEXT BOX (typewriter optional, fast here) ──
+function setText(lines){
+  const box=document.getElementById('txtWin');
+  box.innerHTML='';
+  lines.forEach(({t,c})=>{
+    const sp=document.createElement('span');
+    sp.className='txt-line'+(c?' '+c:'');
+    sp.textContent=t;
+    box.appendChild(sp);
+  });
+}
+
+// ── WIN / LOSE ──
+function winBattle(){
+  G.done.push(G.zone.id);
+  G.hp=Math.min(G.maxHp,G.hp+Math.floor(G.maxHp*.2));
+  G.lvl=Math.min(5,G.done.length+1);
+  G.atk=28+G.done.length*4;
+  document.getElementById('winTitle').textContent='★ '+G.zone.boss+' DERROTADO!';
+  document.getElementById('winSub').textContent=G.zone.quote;
+  document.getElementById('winLoot').textContent=G.zone.reward;
+  flashScreen('#f8c80060');
+  setTimeout(()=>show('S_WIN'),500);
+}
+function loseBattle(){
+  G.hp=Math.floor(G.maxHp*.6);
+  document.getElementById('loseSub').textContent=
+    G.zone.boss+' te venció.\nEstudia "'+G.zone.topic+'".\n\nHP restaurado al 60%.';
+  flashScreen('#d0000070');
+  setTimeout(()=>show('S_LOSE'),500);
+}
+function retry(){startBattle(G.zone);}
+function restart(){G.hp=100;G.maxHp=100;G.done=[];G.lvl=1;G.atk=28;show('S_TITLE');}
+
+// ── UTILS ──
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+</script>
+</body>
+</html>
